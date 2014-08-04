@@ -9,11 +9,13 @@ The library consists of a single header file.
 
 ```
 //Read ASE-file from filename
-ASE_FILE file = openAndReadAseFile("file.ase");
+ASE_FILE file;
+ERRORTYPE error = openAndReadAseFile(&file,"file.ase");
 
 //Read ASE-file from file stream
+ASE_FILE ase;
 FILE *f = fopen("file.ase","r");
-ASE_FILE file = readAseFile(f);
+ERRORTYPE error = readAseFile(&ase,f)
 fclose(f);
 
 //Parse ASE-file
@@ -29,3 +31,6 @@ for(int i=0;i<file.numGroups;i++){
     }
 }
 ```
+
+//Don't forget to free the data structure afterwards
+freeAseFile(&ase);
