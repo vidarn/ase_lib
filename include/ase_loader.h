@@ -117,37 +117,48 @@ static BLOCKTYPE readBlock(float color[4],COLORTYPE *colorType, wchar_t **name,F
             break;
     }
     read_uint32(&blockLength, 1, f);
-    read_uint16(&nameLength, 1, f);
-    if(nameLength > 0){
-        *name = (wchar_t *)malloc(sizeof(wchar_t) * nameLength);
-        for(uint16_t i=0;i<nameLength;i++){
-            uint16_t tmp;
-            read_uint16(&tmp,1,f);
-            (*name)[i] = (wchar_t)tmp;
-        }
-    }
-    if(blockType == BLOCKTYPE_COLOR){
-        uint32_t tmp[4];
-        uint16_t type, numVars;
-        model[4] = 0;
-        assert(!feof(f));
-        fread(model,sizeof(char),4,f);
-        if(strcmp(model,"RGB ") == 0 || strcmp(model,"LAB ") == 0){
-            numVars = 3;
-        } else if(strcmp(model,"CMYK") == 0){
-            numVars = 4;
-        } else{
-            numVars = 1;
-        }
-        read_uint32(tmp,numVars,f);
-        for(uint8_t i = 0; i<4;i++){
-            if(i < numVars){
-                color[i] = *(float *)&tmp[i];
-            } else{
-                color[i] = -1.f;
+    if(blockLength > 0){
+        read_uint16(&nameLength, 1, f);
+        if(nameLength > 0){
+            *name = (wchar_t *)malloc(sizeof(wchar_t) * nameLength);
+            for(uint16_t i=0;i<nameLength;i++){
+                uint16_t tmp;
+                read_uint16(&tmp,1,f);
+                (*name)[i] = (wchar_t)tmp;
             }
         }
-        read_uint16(&type,1,f);
+        if(blockType == BLOCKTYPE_COLOR){
+            uint32_t tmp[4];
+            uint16_t type, numVars;
+            model[4] = 0;
+            assert(!feof(f));
+            fread(model,sizeof(char),4,f);
+            if(strcmp(model,"RGB ") == 0){
+                *colorType = COLORTYPE_RGB;
+                numVars = 3;
+            } else if(strcmp(model,"LAB ") == 0){
+                *colorType = COLORTYPE_LAB;
+                numVars = 3;
+            } else if(strcmp(model,"CMYK") == 0){
+                *colorType = COLORTYPE_CMYK;
+                numVars = 4;
+            } else if(strcmp(model,"GRAY") == 0){
+                *colorType = COLORTYPE_GRAY;
+                numVars = 1;
+            }
+            else {
+                // Error!
+            }
+            read_uint32(tmp,numVars,f);
+            for(uint8_t i = 0; i<4;i++){
+                if(i < numVars){
+                    color[i] = *(float *)&tmp[i];
+                } else{
+                    color[i] = -1.f;
+                }
+            }
+            read_uint16(&type,1,f);
+        }
     }
     return (BLOCKTYPE)blockType;
 }
