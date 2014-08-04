@@ -30,76 +30,76 @@
 /* ------------------ Public symbols -------------------- */
 
 typedef enum{
-    COLORTYPE_RGB,
-    COLORTYPE_CMYK,
-    COLORTYPE_LAB,
-    COLORTYPE_GRAY
-} COLORTYPE;
+    ASE_COLORTYPE_RGB,
+    ASE_COLORTYPE_CMYK,
+    ASE_COLORTYPE_LAB,
+    ASE_COLORTYPE_GRAY
+} ASE_COLORTYPE;
 
 typedef enum{
-    ERRORTYPE_SUCCESS,
-    ERRORTYPE_COULD_NOT_OPEN_FILE,
-    ERRORTYPE_INVALID_FILE,
-    ERRORTYPE_UNEXPECTED_EOF
-} ERRORTYPE;
+    ASE_ERRORTYPE_SUCCESS,
+    ASE_ERRORTYPE_COULD_NOT_OPEN_FILE,
+    ASE_ERRORTYPE_INVALID_FILE,
+    ASE_ERRORTYPE_UNEXPECTED_EOF
+} ASE_ERRORTYPE;
 
 typedef struct{
     wchar_t *name;
-    COLORTYPE type;
+    ASE_COLORTYPE type;
     float col[4];
-} COLOR;
+} ASE_COLOR;
 
 typedef struct{
     wchar_t *name;
     uint16_t numColors;
-    COLOR *colors;
-} GROUP;
+    ASE_COLOR *colors;
+} ASE_GROUP;
 
 typedef struct{
     uint16_t numGroups;
-    GROUP *groups;
+    ASE_GROUP *groups;
 } ASE_FILE;
 
-static ERRORTYPE readAseFile(ASE_FILE *ase, FILE *f);
-static ERRORTYPE openAndReadAseFile(ASE_FILE *ase, const char *filename);
-static void freeAseFile(ASE_FILE *ase);
-static const wchar_t* getErrorString(ERRORTYPE error);
+static ASE_ERRORTYPE ase_readAseFile(ASE_FILE *ase, FILE *f);
+static ASE_ERRORTYPE ase_openAndReadAseFile(ASE_FILE *ase, const char *filename);
+static void ase_freeAseFile(ASE_FILE *ase);
+static const wchar_t* ase_getErrorString(ASE_ERRORTYPE error);
 
 
 /*  ---------------- Implementation ----------------------- */
 
-static uint16_t be16_to_cpu(const uint8_t *buf)
+static uint16_t ase_be16_to_cpu(const uint8_t *buf)
 {
     return ((uint16_t)buf[1]) | (((uint16_t)buf[0]) << 8);
 }
 
-static uint32_t be32_to_cpu(const uint8_t *buf)
+static uint32_t ase_be32_to_cpu(const uint8_t *buf)
 {
     return  (((uint32_t)buf[0]) << 8*3) | (((uint32_t)buf[1]) << 8*2) | (((uint32_t)buf[2]) << 8) | ((uint32_t)buf[3]);
 }
 
-static ERRORTYPE read_uint16(uint16_t *dest, uint16_t num, FILE *f)
+static ASE_ERRORTYPE ase_read_uint16(uint16_t *dest, uint16_t num, FILE *f)
 {
     uint8_t tmp[2];
     uint16_t i;
-    if(feof(f)) return ERRORTYPE_UNEXPECTED_EOF;
+    if(feof(f)) return ASE_ERRORTYPE_UNEXPECTED_EOF;
     for(i=0;i<num;i++){
         fread(tmp,sizeof(uint16_t),1,f);
-        dest[i] = be16_to_cpu(tmp);
+        dest[i] = ase_be16_to_cpu(tmp);
     }
-    return ERRORTYPE_SUCCESS;
+    return ASE_ERRORTYPE_SUCCESS;
 }
 
-static ERRORTYPE read_uint32(uint32_t *dest, uint32_t num, FILE *f)
+static ASE_ERRORTYPE ase_read_uint32(uint32_t *dest, uint32_t num, FILE *f)
 {
     uint8_t tmp[4];
     uint32_t i;
-    if(feof(f)) return ERRORTYPE_UNEXPECTED_EOF;
+    if(feof(f)) return ASE_ERRORTYPE_UNEXPECTED_EOF;
     for(i=0;i<num;i++){
         fread(tmp,sizeof(uint32_t),1,f);
-        dest[i] = be32_to_cpu(tmp);
+        dest[i] = ase_be32_to_cpu(tmp);
     }
-    return ERRORTYPE_SUCCESS;
+    return ASE_ERRORTYPE_SUCCESS;
 }
 
 typedef enum{
@@ -109,14 +109,14 @@ typedef enum{
 } BLOCKTYPE;
 
 
-static ERRORTYPE readBlock(BLOCKTYPE *blockType, float color[4],COLORTYPE *colorType, wchar_t **name,FILE *f)
+static ASE_ERRORTYPE ase_readBlock(BLOCKTYPE *blockType, float color[4],ASE_COLORTYPE *colorType, wchar_t **name,FILE *f)
 {
     char model[5];
     uint16_t i;
     uint16_t tmpBlockType;
     uint32_t blockLength = 0;
     uint16_t nameLength = 0;
-    ERRORTYPE error = read_uint16(&tmpBlockType,1,f);
+    ASE_ERRORTYPE error = ase_read_uint16(&tmpBlockType,1,f);
     if(error) return error;
     switch(tmpBlockType){
         case 0xc001:
@@ -129,18 +129,18 @@ static ERRORTYPE readBlock(BLOCKTYPE *blockType, float color[4],COLORTYPE *color
             *blockType = BLOCKTYPE_COLOR;
             break;
         default:
-            return ERRORTYPE_INVALID_FILE;
+            return ASE_ERRORTYPE_INVALID_FILE;
     }
-    error = read_uint32(&blockLength, 1, f);
+    error = ase_read_uint32(&blockLength, 1, f);
     if(error) return error;
     if(blockLength > 0){
-        error = read_uint16(&nameLength, 1, f);
+        error = ase_read_uint16(&nameLength, 1, f);
         if(error) return error;
         if(nameLength > 0){
             *name = (wchar_t *)malloc(sizeof(wchar_t) * nameLength);
             for(i=0;i<nameLength;i++){
                 uint16_t tmp;
-                error = read_uint16(&tmp,1,f);
+                error = ase_read_uint16(&tmp,1,f);
                 if(error){
                     free(*name);
                     return error;
@@ -154,26 +154,26 @@ static ERRORTYPE readBlock(BLOCKTYPE *blockType, float color[4],COLORTYPE *color
             model[4] = 0;
             if(feof(f)){
                 free(*name);
-                return ERRORTYPE_UNEXPECTED_EOF;
+                return ASE_ERRORTYPE_UNEXPECTED_EOF;
             }
             fread(model,sizeof(char),4,f);
             if(strcmp(model,"RGB ") == 0){
-                *colorType = COLORTYPE_RGB;
+                *colorType = ASE_COLORTYPE_RGB;
                 numVars = 3;
             } else if(strcmp(model,"LAB ") == 0){
-                *colorType = COLORTYPE_LAB;
+                *colorType = ASE_COLORTYPE_LAB;
                 numVars = 3;
             } else if(strcmp(model,"CMYK") == 0){
-                *colorType = COLORTYPE_CMYK;
+                *colorType = ASE_COLORTYPE_CMYK;
                 numVars = 4;
             } else if(strcmp(model,"GRAY") == 0){
-                *colorType = COLORTYPE_GRAY;
+                *colorType = ASE_COLORTYPE_GRAY;
                 numVars = 1;
             }
             else {
-                return ERRORTYPE_INVALID_FILE;
+                return ASE_ERRORTYPE_INVALID_FILE;
             }
-            error = read_uint32(tmp,numVars,f);
+            error = ase_read_uint32(tmp,numVars,f);
             if(error){
                 free(*name);
                 return error;
@@ -185,68 +185,68 @@ static ERRORTYPE readBlock(BLOCKTYPE *blockType, float color[4],COLORTYPE *color
                     color[i] = -1.f;
                 }
             }
-            error = read_uint16(&type,1,f);
+            error = ase_read_uint16(&type,1,f);
             if(error){
                 free(*name);
                 return error;
             }
         }
     }
-    return ERRORTYPE_SUCCESS;
+    return ASE_ERRORTYPE_SUCCESS;
 }
 
-static ERRORTYPE openAndReadAseFile(ASE_FILE *ase, const char *filename)
+static ASE_ERRORTYPE ase_openAndReadAseFile(ASE_FILE *ase, const char *filename)
 {
-    ERRORTYPE error;
+    ASE_ERRORTYPE error;
     FILE *f = fopen(filename,"r");
     if(f){
-        error = readAseFile(ase,f);
+        error = ase_readAseFile(ase,f);
         fclose(f);
     }
     else{
-        error = ERRORTYPE_COULD_NOT_OPEN_FILE;
+        error = ASE_ERRORTYPE_COULD_NOT_OPEN_FILE;
     }
     return error;
 }
 
-static ERRORTYPE readAseFile(ASE_FILE *ase, FILE *f)
+static ASE_ERRORTYPE ase_readAseFile(ASE_FILE *ase, FILE *f)
 {
     float c[4];
-    COLORTYPE colorType;
-    ERRORTYPE error;
-    COLOR *col;
+    ASE_COLORTYPE colorType;
+    ASE_ERRORTYPE error;
+    ASE_COLOR *col;
     BLOCKTYPE blockType;
     wchar_t *name;
     char sig[5];
     uint16_t version[2];
     uint32_t numBlocks;
     uint16_t i, ii;
-    GROUP *currentGroup = NULL;
+    ASE_GROUP *currentGroup = NULL;
     ase->numGroups = 0;
     ase->groups = NULL;
     if(feof(f)){
-        return ERRORTYPE_UNEXPECTED_EOF;
+        return ASE_ERRORTYPE_UNEXPECTED_EOF;
     }
     fread(sig,sizeof(char),4,f);
     sig[4] = 0;
     if(strcmp(sig,"ASEF") != 0){
-        return ERRORTYPE_INVALID_FILE;
+        return ASE_ERRORTYPE_INVALID_FILE;
     }
-    error = read_uint16(version,2,f);
+    error = ase_read_uint16(version,2,f);
     if(error) return error;
-    error = read_uint32(&numBlocks, 1, f);
+    error = ase_read_uint32(&numBlocks, 1, f);
     if(error) return error;
     for(i=0;i<numBlocks;i++){
-        error = readBlock(&blockType, c,&colorType,&name,f);
+        error = ase_readBlock(&blockType, c,&colorType,&name,f);
         if(error)
         {
-            freeAseFile(ase);
+            ase_freeAseFile(ase);
             return error;
         }
         switch(blockType){
             case BLOCKTYPE_GROUP_START:
                 ase->numGroups++;
-                ase->groups = (GROUP *)realloc(ase->groups,ase->numGroups*sizeof(GROUP));
+                ase->groups = (ASE_GROUP *)realloc(ase->groups,ase->numGroups*sizeof(ASE_GROUP));
                 currentGroup = ase->groups + ase->numGroups - 1;
                 currentGroup->name = name;
                 currentGroup->numColors = 0;
@@ -254,7 +254,7 @@ static ERRORTYPE readAseFile(ASE_FILE *ase, FILE *f)
                 break;
             case BLOCKTYPE_COLOR:
                 currentGroup->numColors++;
-                currentGroup->colors = (COLOR *)realloc(currentGroup->colors,currentGroup->numColors*sizeof(COLOR));
+                currentGroup->colors = (ASE_COLOR *)realloc(currentGroup->colors,currentGroup->numColors*sizeof(ASE_COLOR));
                 col = currentGroup->colors + currentGroup->numColors - 1;
                 col->name = name;
                 col->type = colorType;
@@ -266,14 +266,14 @@ static ERRORTYPE readAseFile(ASE_FILE *ase, FILE *f)
                 break;
         }
     }
-    return ERRORTYPE_SUCCESS;
+    return ASE_ERRORTYPE_SUCCESS;
 }
 
-static void freeAseFile(ASE_FILE *ase)
+static void ase_freeAseFile(ASE_FILE *ase)
 {
     uint16_t i, ii;
-    GROUP *group;
-    COLOR *color;
+    ASE_GROUP *group;
+    ASE_COLOR *color;
     for(i=0;i<ase->numGroups;i++){
         group = ase->groups + i;
         for(ii=0;ii<group->numColors;ii++){
@@ -287,16 +287,16 @@ static void freeAseFile(ASE_FILE *ase)
     ase->numGroups = 0;
 }
 
-static const wchar_t* getErrorString(ERRORTYPE error)
+static const wchar_t* ase_getErrorString(ASE_ERRORTYPE error)
 {
     switch(error){
-        case ERRORTYPE_SUCCESS:
+        case ASE_ERRORTYPE_SUCCESS:
             return L"Success";
-        case ERRORTYPE_COULD_NOT_OPEN_FILE:
+        case ASE_ERRORTYPE_COULD_NOT_OPEN_FILE:
             return L"Could not open file";
-        case ERRORTYPE_INVALID_FILE:
+        case ASE_ERRORTYPE_INVALID_FILE:
             return L"Invalid file";
-        case ERRORTYPE_UNEXPECTED_EOF:
+        case ASE_ERRORTYPE_UNEXPECTED_EOF:
             return L"Unexpected end-of-file";
     }
     return L"Unknown";
