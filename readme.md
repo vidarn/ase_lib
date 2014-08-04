@@ -9,8 +9,8 @@ The library consists of a single header file.
 
 ```
 //Read ASE-file from filename
-ASE_FILE file;
-ASE_ERRORTYPE error = ase_openAndReadAseFile(&file,"file.ase");
+ASE_FILE ase;
+ASE_ERRORTYPE error = ase_openAndReadAseFile(&ase,"file.ase");
 
 //Read ASE-file from file stream
 ASE_FILE ase;
@@ -19,8 +19,8 @@ ASE_ERRORTYPE error = ase_readAseFile(&ase,f)
 fclose(f);
 
 //Parse ASE-file
-for(i=0;i<file.numGroups;i++){
-    ASE_GROUP *group = file.groups + i;
+for(i=0;i<ase.numGroups;i++){
+    ASE_GROUP *group = ase.groups + i;
     // Name: group->name (wchar_t *)
     for(ii=0;ii<group->numColors;ii++){
         ASE_COLOR *color = group->colors + ii;
