@@ -1,4 +1,4 @@
-## ase_loader
+## ase_lib
 
 A simple MIT-licensed C89-library for reading Adobe Swatch Exchange (.ASE) files.
 The library consists of a single header file.
