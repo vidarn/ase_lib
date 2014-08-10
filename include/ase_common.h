@@ -20,6 +20,7 @@
    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.  */
 
 #pragma once
+#include <unicode/ustring.h>
 
 /* ------------------ Public symbols -------------------- */
 
@@ -35,17 +36,18 @@ typedef enum{
     ASE_ERRORTYPE_COULD_NOT_OPEN_FILE,
     ASE_ERRORTYPE_INVALID_FILE,
     ASE_ERRORTYPE_INVALID_ASE,
-    ASE_ERRORTYPE_UNEXPECTED_EOF
+    ASE_ERRORTYPE_UNEXPECTED_EOF,
+    ASE_ERRORTYPE_UNICODE
 } ASE_ERRORTYPE;
 
 typedef struct{
-    uint16_t *name;
+    char *name;
     ASE_COLORTYPE type;
     float col[4];
 } ASE_COLOR;
 
 typedef struct{
-    uint16_t *name;
+    char *name;
     uint16_t numColors;
     ASE_COLOR *colors;
 } ASE_GROUP;
@@ -86,19 +88,21 @@ static void ase_freeAseFile(ASE_FILE *ase)
     ase->numGroups = 0;
 }
 
-static const wchar_t* ase_getErrorString(ASE_ERRORTYPE error)
+static const char* ase_getErrorString(ASE_ERRORTYPE error)
 {
     switch(error){
         case ASE_ERRORTYPE_SUCCESS:
-            return L"Success";
+            return "Success";
         case ASE_ERRORTYPE_COULD_NOT_OPEN_FILE:
-            return L"Could not open file";
+            return "Could not open file";
         case ASE_ERRORTYPE_INVALID_FILE:
-            return L"Invalid file";
+            return "Invalid file";
         case ASE_ERRORTYPE_INVALID_ASE:
-            return L"Invalid ase";
+            return "Invalid ase";
         case ASE_ERRORTYPE_UNEXPECTED_EOF:
-            return L"Unexpected end-of-file";
+            return "Unexpected end-of-file";
+        case ASE_ERRORTYPE_UNICODE:
+            return "Unicode error";
     }
-    return L"Unknown";
+    return "Unknown";
 }

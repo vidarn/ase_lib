@@ -23,7 +23,6 @@
 
 #include <stdint.h>
 #include <stdlib.h>
-#include <wchar.h>
 #include <string.h>
 #include <assert.h>
 
@@ -42,9 +41,10 @@ static void ase_cpu_to_be16(uint8_t *buf, uint16_t val)
 
 static void ase_cpu_to_be32(uint8_t *buf, uint32_t val)
 {
-    buf[0] = (val & 0xFF0000) >> 16;
-    buf[1] = (val & 0x00FF00) >> 8;
-    buf[2] = (val & 0x0000FF);
+    buf[0] = (val & 0xFF000000) >> 8*3;
+    buf[1] = (val & 0x00FF0000) >> 8*2;
+    buf[2] = (val & 0x0000FF00) >> 8*1;
+    buf[3] = (val & 0x000000FF) >> 8*0;
 }
 
 static ASE_ERRORTYPE ase_write_uint16(uint16_t *val, uint16_t num, FILE *f)
@@ -61,7 +61,7 @@ static ASE_ERRORTYPE ase_write_uint16(uint16_t *val, uint16_t num, FILE *f)
 
 static ASE_ERRORTYPE ase_write_uint32(uint32_t *val, uint16_t num, FILE *f)
 {
-    uint8_t tmp[3];
+    uint8_t tmp[4];
     uint16_t i;
     if(feof(f)) return ASE_ERRORTYPE_UNEXPECTED_EOF;
     for(i=0;i<num;i++){
@@ -85,10 +85,9 @@ static ASE_ERRORTYPE ase_openAndWriteAseFile(ASE_FILE *ase, const char *filename
     return error;
 }
 
-static ASE_ERRORTYPE ase_write_block(ASE_BLOCKTYPE blockType, ASE_COLOR *color, const wchar_t *name, FILE *f)
+static ASE_ERRORTYPE ase_write_block(ASE_BLOCKTYPE blockType, ASE_COLOR *color, const char *name, FILE *f)
 {
     uint16_t tmpBlockType;
-    uint32_t blockLen;
     switch(blockType){
         case ASE_BLOCKTYPE_GROUP_START:
             tmpBlockType =  0xc001;
@@ -103,16 +102,25 @@ static ASE_ERRORTYPE ase_write_block(ASE_BLOCKTYPE blockType, ASE_COLOR *color, 
             return ASE_ERRORTYPE_INVALID_ASE;
     }
     ase_write_uint16(&tmpBlockType,1,f);
+    if(blockType != ASE_BLOCKTYPE_GROUP_END){
+        uint32_t blockLen;
+        int16_t capacity;
+        UChar *tmp;
+        UErrorCode errorCode = U_ERROR_WARNING_START;
 #pragma message("TODO: write block length correctly")
-    blockLen = 20;
-    ase_write_uint32(&blockLen,1,f);
-    if(name != NULL){
-        uint16_t nameLen = wcslen(name);
-        ase_write_uint16(&nameLen,1,f);
-        ase_write_uint16((uint16_t*)name,nameLen,f);
+        blockLen = 20;
+        ase_write_uint32(&blockLen,1,f);
+        u_strFromUTF8WithSub(NULL,0,&capacity,name,-1,0xFFFD,NULL,&errorCode);
+        capacity++;
+        tmp = malloc(sizeof(UChar) * capacity);
+        errorCode = U_ERROR_WARNING_START;
+        u_strFromUTF8WithSub(tmp,capacity,NULL,name,-1,0xFFFD,NULL,&errorCode);
+        ase_write_uint16((uint16_t*)&capacity,1,f);
+        ase_write_uint16((uint16_t*)tmp,capacity,f);
     }
     else{
         tmpBlockType = 0;
+        ase_write_uint16(&tmpBlockType,1,f);
         ase_write_uint16(&tmpBlockType,1,f);
     }
     if(blockType == ASE_BLOCKTYPE_COLOR){
@@ -153,7 +161,6 @@ static ASE_ERRORTYPE ase_writeAseFile(ASE_FILE *ase, FILE *f)
     for(i=0;i<ase->numGroups;i++){
         numBlocks += ase->groups[i].numColors + 2;
     }
-    wprintf(L"numBlocks: %d\n",numBlocks);
     ase_write_uint32(&numBlocks,1,f);
     for(i=0;i<ase->numGroups;i++){
         uint16_t ii;

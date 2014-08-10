@@ -68,7 +68,7 @@ static ASE_ERRORTYPE ase_read_uint32(uint32_t *dest, uint32_t num, FILE *f)
     return ASE_ERRORTYPE_SUCCESS;
 }
 
-static ASE_ERRORTYPE ase_readBlock(ASE_BLOCKTYPE *blockType, float color[4],ASE_COLORTYPE *colorType, uint16_t **name,FILE *f)
+static ASE_ERRORTYPE ase_readBlock(ASE_BLOCKTYPE *blockType, float color[4],ASE_COLORTYPE *colorType, char **name,FILE *f)
 {
     uint16_t tmpBlockType;
     uint32_t blockLength = 0;
@@ -95,16 +95,24 @@ static ASE_ERRORTYPE ase_readBlock(ASE_BLOCKTYPE *blockType, float color[4],ASE_
         error = ase_read_uint16(&nameLength, 1, f);
         if(error) return error;
         if(nameLength > 0){
-            *name = (wchar_t *)malloc(sizeof(wchar_t) * nameLength);
-            for(i=0;i<nameLength;i++){
-                uint16_t tmp;
-                error = ase_read_uint16(&tmp,1,f);
-                if(error){
-                    free(*name);
-                    return error;
-                }
-                (*name)[i] = (wchar_t)tmp;
+            int32_t len;
+            UChar *tmp = (UChar *)malloc(sizeof(uint16_t) * nameLength);
+            UErrorCode errorCode;
+            error = ase_read_uint16(tmp,nameLength,f);
+            if(error){
+                free(tmp);
+                return error;
             }
+            errorCode = U_ERROR_WARNING_START;
+            u_strToUTF8WithSub(NULL,0,&len,tmp,-1,0xFFFD,NULL,&errorCode);
+            len++;
+            *name = (char *)malloc(sizeof(char)*len);
+            errorCode = U_ERROR_WARNING_START;
+            u_strToUTF8WithSub(*name,len,NULL,tmp,-1,0xFFFD,NULL,&errorCode);
+            if(U_FAILURE(errorCode)){
+                return ASE_ERRORTYPE_UNICODE;
+            }
+            free(tmp);
         }
         if(*blockType == ASE_BLOCKTYPE_COLOR){
             uint32_t tmp[4];
@@ -175,7 +183,7 @@ static ASE_ERRORTYPE ase_readAseFile(ASE_FILE *ase, FILE *f)
     ASE_ERRORTYPE error;
     ASE_COLOR *col;
     ASE_BLOCKTYPE blockType;
-    wchar_t *name;
+    char *name;
     char sig[5];
     uint32_t numBlocks;
     uint16_t i, ii;
@@ -199,7 +207,7 @@ static ASE_ERRORTYPE ase_readAseFile(ASE_FILE *ase, FILE *f)
         if(error)
         {
             free(name);
-            ase_freeAseFile(ase);
+            /*ase_freeAseFile(ase);*/
             return error;
         }
         switch(blockType){
