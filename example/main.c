@@ -8,6 +8,7 @@ int main(int argc, char **argv)
     uint16_t i, ii, a, numFiles = 1;
     const char *filenames[] = {"data/example.ase"};
     for(a=0;a<numFiles;a++){
+        /*     --- Read ase file ---      */
         printf("Loading file %s\n", filenames[a]);
         error = ase_openAndReadAseFile(&ase, filenames[a]);
         printf("ASE file version %d.%d\n", ase.version[0],ase.version[1]);
@@ -33,15 +34,14 @@ int main(int argc, char **argv)
                     printf("\n");
                 }
             }
+            /*     --- Write ase file ---      */
             printf("Writing file %s\n", "data/out.ase");
             if(ase_openAndWriteAseFile(&ase,"data/out.ase")){
                 printf("  Error occured: %s\n", ase_getErrorString(error));
             }
+            printf("Writing file %s\n", "data/out.ase");
+            /* --- Don't forget to free the data structure --- */
             ase_freeAseFile(&ase);
-            error = ase_openAndReadAseFile(&ase, "data/out.ase");
-            if(error){
-                printf("  Error occured: %s\n", ase_getErrorString(error));
-            }
         }
         else{
             printf("  Error occured: %s\n", ase_getErrorString(error));

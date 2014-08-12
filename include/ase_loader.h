@@ -23,7 +23,6 @@
 
 #include <stdint.h>
 #include <stdlib.h>
-#include <wchar.h>
 #include <string.h>
 #include "ase_common.h"
 

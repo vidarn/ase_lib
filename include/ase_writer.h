@@ -24,7 +24,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
+#include "ase_common.h"
 
 /* ------------------ Public symbols -------------------- */
 
@@ -51,7 +51,6 @@ static ASE_ERRORTYPE ase_write_uint16(uint16_t *val, uint16_t num, FILE *f)
 {
     uint8_t tmp[2];
     uint16_t i;
-    if(feof(f)) return ASE_ERRORTYPE_UNEXPECTED_EOF;
     for(i=0;i<num;i++){
         ase_cpu_to_be16(tmp,val[i]);
         fwrite(tmp,sizeof(uint16_t),1,f);
@@ -63,7 +62,6 @@ static ASE_ERRORTYPE ase_write_uint32(uint32_t *val, uint16_t num, FILE *f)
 {
     uint8_t tmp[4];
     uint16_t i;
-    if(feof(f)) return ASE_ERRORTYPE_UNEXPECTED_EOF;
     for(i=0;i<num;i++){
         ase_cpu_to_be32(tmp,val[i]);
         fwrite(tmp,sizeof(uint32_t),1,f);
@@ -105,49 +103,51 @@ static ASE_ERRORTYPE ase_write_block(ASE_BLOCKTYPE blockType, ASE_COLOR *color, 
     if(blockType != ASE_BLOCKTYPE_GROUP_END){
         uint32_t blockLen;
         int16_t capacity;
+            char *model;
+            uint16_t numVars, i;
         UChar *tmp;
         UErrorCode errorCode = U_ERROR_WARNING_START;
-#pragma message("TODO: write block length correctly")
-        blockLen = 20;
-        ase_write_uint32(&blockLen,1,f);
         u_strFromUTF8WithSub(NULL,0,&capacity,name,-1,0xFFFD,NULL,&errorCode);
         capacity++;
+        blockLen =  2*1 + 2*capacity;
+        if(blockType == ASE_BLOCKTYPE_COLOR){
+            switch(color->type){
+                case ASE_COLORTYPE_RGB:
+                    model = "RGB "; numVars = 3;
+                    break;
+                case ASE_COLORTYPE_CMYK:
+                    model = "CMYK"; numVars = 4;
+                    break;
+                case ASE_COLORTYPE_LAB:
+                    model = "LAB "; numVars = 3;
+                    break;
+                case ASE_COLORTYPE_GRAY:
+                    model = "GRAY"; numVars = 1;
+                    break;
+                default:
+                    return ASE_ERRORTYPE_INVALID_ASE;
+            }
+            blockLen += 4*1 + numVars*4 + 2*1;
+        }
+        ase_write_uint32(&blockLen,1,f);
         tmp = malloc(sizeof(UChar) * capacity);
         errorCode = U_ERROR_WARNING_START;
         u_strFromUTF8WithSub(tmp,capacity,NULL,name,-1,0xFFFD,NULL,&errorCode);
         ase_write_uint16((uint16_t*)&capacity,1,f);
         ase_write_uint16((uint16_t*)tmp,capacity,f);
+        if(blockType == ASE_BLOCKTYPE_COLOR){
+            fwrite(model,sizeof(char),4,f);
+            for(i=0;i<numVars;i++){
+                ase_write_uint32((uint32_t *)(color->col + i),1,f);
+            }
+            i=2;
+            ase_write_uint16(&i,1,f);
+        }
     }
     else{
         tmpBlockType = 0;
         ase_write_uint16(&tmpBlockType,1,f);
         ase_write_uint16(&tmpBlockType,1,f);
-    }
-    if(blockType == ASE_BLOCKTYPE_COLOR){
-        char *model;
-        uint16_t numVars, i;
-        switch(color->type){
-            case ASE_COLORTYPE_RGB:
-                model = "RGB "; numVars = 3;
-                break;
-            case ASE_COLORTYPE_CMYK:
-                model = "CMYK"; numVars = 4;
-                break;
-            case ASE_COLORTYPE_LAB:
-                model = "LAB "; numVars = 3;
-                break;
-            case ASE_COLORTYPE_GRAY:
-                model = "GRAY"; numVars = 1;
-                break;
-            default:
-                return ASE_ERRORTYPE_INVALID_ASE;
-        }
-        fwrite(model,sizeof(char),4,f);
-        for(i=0;i<numVars;i++){
-            ase_write_uint32((uint32_t *)(color->col + i),1,f);
-        }
-        i=2;
-        ase_write_uint16(&i,1,f);
     }
     return ASE_ERRORTYPE_SUCCESS;
 }
