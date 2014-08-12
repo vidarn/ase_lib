@@ -105,10 +105,14 @@ static ASE_ERRORTYPE ase_write_block(ASE_BLOCKTYPE blockType, ASE_COLOR *color, 
         int16_t capacity;
             char *model;
             uint16_t numVars, i;
+#ifndef ASE_NO_UTF8
         UChar *tmp;
         UErrorCode errorCode = U_ERROR_WARNING_START;
         u_strFromUTF8WithSub(NULL,0,&capacity,name,-1,0xFFFD,NULL,&errorCode);
         capacity++;
+#else
+        capacity = ase_uint16StrLen(name);
+#endif
         blockLen =  2*1 + 2*capacity;
         if(blockType == ASE_BLOCKTYPE_COLOR){
             switch(color->type){

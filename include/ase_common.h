@@ -20,7 +20,10 @@
    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.  */
 
 #pragma once
+#ifndef ASE_NO_UTF8
 #include <unicode/ustring.h>
+#include <stdio.h>
+#endif
 
 /* ------------------ Public symbols -------------------- */
 
@@ -106,3 +109,13 @@ static const char* ase_getErrorString(ASE_ERRORTYPE error)
     }
     return "Unknown";
 }
+
+static uint16_t ase_uint16StrLen(const uint16_t *str)
+{
+    uint16_t len = 0;
+    while(str[len] != 0){
+        len++;
+    }
+    return len;
+}
+

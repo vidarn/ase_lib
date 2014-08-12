@@ -10,10 +10,10 @@ The library consists of a single header file.
 ```
 #include "ase_loader.h"
 #include "ase_writer.h" 
-/*Read ASE-file from filename*/
 int main(int argc, char **argv){
     unsigned int i,ii;
     ASE_FILE ase;
+    /*Read ASE-file from filename*/
     ASE_ERRORTYPE error = ase_openAndReadAseFile(&ase,"file.ase");
     if(!error){
          /*Parse ASE-file*/

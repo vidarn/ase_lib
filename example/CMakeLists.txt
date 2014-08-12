@@ -10,5 +10,5 @@ include_directories(
 )
 set(CMAKE_C_FLAGS "-Wall -pedantic") 
 
-add_executable(example main.c)
+add_executable(example readme.c)
 target_link_libraries(example ${ICU_LIBRARIES})

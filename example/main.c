@@ -1,4 +1,5 @@
 #include <stdio.h>
+#define ASE_NO_UTF8
 #include "ase_loader.h"
 #include "ase_writer.h"
 int main(int argc, char **argv)
@@ -39,7 +40,6 @@ int main(int argc, char **argv)
             if(ase_openAndWriteAseFile(&ase,"data/out.ase")){
                 printf("  Error occured: %s\n", ase_getErrorString(error));
             }
-            printf("Writing file %s\n", "data/out.ase");
             /* --- Don't forget to free the data structure --- */
             ase_freeAseFile(&ase);
         }

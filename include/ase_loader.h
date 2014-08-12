@@ -94,6 +94,7 @@ static ASE_ERRORTYPE ase_readBlock(ASE_BLOCKTYPE *blockType, float color[4],ASE_
         error = ase_read_uint16(&nameLength, 1, f);
         if(error) return error;
         if(nameLength > 0){
+#ifndef ASE_NO_UTF8
             int32_t len;
             UChar *tmp = (UChar *)malloc(sizeof(uint16_t) * nameLength);
             UErrorCode errorCode;
@@ -112,6 +113,14 @@ static ASE_ERRORTYPE ase_readBlock(ASE_BLOCKTYPE *blockType, float color[4],ASE_
                 return ASE_ERRORTYPE_UNICODE;
             }
             free(tmp);
+#else
+            *name = (char *)malloc(sizeof(uint16_t) * nameLength);
+            error = ase_read_uint16((uint16_t *)*name,nameLength,f);
+            if(error){
+                free(*name);
+                return error;
+            }
+#endif
         }
         if(*blockType == ASE_BLOCKTYPE_COLOR){
             uint32_t tmp[4];
