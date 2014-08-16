@@ -1,7 +1,6 @@
 ## ase_lib
 
-A simple MIT-licensed C89-library for reading Adobe Swatch Exchange (.ASE) files.
-The library consists of a single header file.
+A simple MIT-licensed header-only C89-library for reading Adobe Swatch Exchange (.ASE) files.
 
 ----------------
 
