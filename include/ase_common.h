@@ -116,6 +116,7 @@ static uint16_t ase_uint16StrLen(const uint16_t *str)
     while(str[len] != 0){
         len++;
     }
+    len++;
     return len;
 }
 

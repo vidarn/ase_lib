@@ -47,7 +47,7 @@ static void ase_cpu_to_be32(uint8_t *buf, uint32_t val)
     buf[3] = (val & 0x000000FF) >> 8*0;
 }
 
-static ASE_ERRORTYPE ase_write_uint16(uint16_t *val, uint16_t num, FILE *f)
+static ASE_ERRORTYPE ase_write_uint16(const uint16_t *val, uint16_t num, FILE *f)
 {
     uint8_t tmp[2];
     uint16_t i;
@@ -58,7 +58,7 @@ static ASE_ERRORTYPE ase_write_uint16(uint16_t *val, uint16_t num, FILE *f)
     return ASE_ERRORTYPE_SUCCESS;
 }
 
-static ASE_ERRORTYPE ase_write_uint32(uint32_t *val, uint16_t num, FILE *f)
+static ASE_ERRORTYPE ase_write_uint32(const uint32_t *val, uint16_t num, FILE *f)
 {
     uint8_t tmp[4];
     uint16_t i;
@@ -83,7 +83,11 @@ static ASE_ERRORTYPE ase_openAndWriteAseFile(ASE_FILE *ase, const char *filename
     return error;
 }
 
-static ASE_ERRORTYPE ase_write_block(ASE_BLOCKTYPE blockType, ASE_COLOR *color, const char *name, FILE *f)
+#ifdef ASE_NO_UTF8
+static ASE_ERRORTYPE ase_write_block(ASE_BLOCKTYPE blockType, ASE_COLOR *color,const u_int16_t *name, FILE *f)
+#else
+static ASE_ERRORTYPE ase_write_block(ASE_BLOCKTYPE blockType, ASE_COLOR *color,const char *name, FILE *f)
+#endif
 {
     uint16_t tmpBlockType;
     switch(blockType){
@@ -134,11 +138,16 @@ static ASE_ERRORTYPE ase_write_block(ASE_BLOCKTYPE blockType, ASE_COLOR *color, 
             blockLen += 4*1 + numVars*4 + 2*1;
         }
         ase_write_uint32(&blockLen,1,f);
+#ifndef ASE_NO_UTF8
         tmp = malloc(sizeof(UChar) * capacity);
         errorCode = U_ERROR_WARNING_START;
         u_strFromUTF8WithSub(tmp,capacity,NULL,name,-1,0xFFFD,NULL,&errorCode);
         ase_write_uint16((uint16_t*)&capacity,1,f);
         ase_write_uint16((uint16_t*)tmp,capacity,f);
+#else
+        ase_write_uint16((uint16_t*)&capacity, 1, f);
+        ase_write_uint16(name, capacity, f);
+#endif
         if(blockType == ASE_BLOCKTYPE_COLOR){
             fwrite(model,sizeof(char),4,f);
             for(i=0;i<numVars;i++){
