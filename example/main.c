@@ -1,5 +1,4 @@
 #include <stdio.h>
-#define ASE_NO_UTF8
 #include "ase_loader.h"
 #include "ase_writer.h"
 int main(int argc, char **argv)
@@ -21,14 +20,15 @@ int main(int argc, char **argv)
                     ASE_COLOR *color = group->colors + ii;
                     uint16_t iii = 0;
                     char *typeName;
+                    int16_t numVars = 0;
                     switch(color->type){
-                        case ASE_COLORTYPE_RGB:  typeName = "RGB";  break;
-                        case ASE_COLORTYPE_CMYK: typeName = "CMYK"; break;
-                        case ASE_COLORTYPE_LAB:  typeName = "LAB";  break;
-                        case ASE_COLORTYPE_GRAY: typeName = "Gray"; break;
+                        case ASE_COLORTYPE_RGB:  typeName = "RGB";  numVars = 3;  break;
+                        case ASE_COLORTYPE_CMYK: typeName = "CMYK"; numVars = 4; break;
+                        case ASE_COLORTYPE_LAB:  typeName = "LAB";  numVars = 3;  break;
+                        case ASE_COLORTYPE_GRAY: typeName = "Gray"; numVars = 1; break;
                     }
                     printf("    Color [%s] \"%s\"\n      ",typeName,color->name);
-                    while(iii < 4 && color->col[iii] > 0){
+                    while(iii < numVars){
                         printf("%f ", color->col[iii]);
                         iii++;
                     }
